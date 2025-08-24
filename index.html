@@ -17,19 +17,8 @@
       button:hover{background:#f9fafb}
     </style>
 
-    <!-- fflate のCDN（本命） -->
-     <script src="https://unpkg.com/fflate@0.8.2"></script>
-     <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
-    <!-- 読み込み失敗時のフォールバック -->
-    <script>
-      (function(){
-        if (!window.fflate) {
-          var s = document.createElement('script');
-          s.src = 'https://unpkg.com/fflate@0.8.1/umd/fflate.min.js';
-          document.head.appendChild(s);
-        }
-      })();
-    </script>
+    <script src="./assets/fflate.min.js?v=1"></script>
+
   </head>
   <body>
     <div class="wrap">

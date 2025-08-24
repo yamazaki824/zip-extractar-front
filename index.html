@@ -2,24 +2,33 @@
 <html lang="ja">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Zip解凍（ローカル）</title>
     <style>
-      body{font-family:system-ui, -apple-system, Segoe UI, Roboto, Noto Sans JP, sans-serif; background:#f6f7f9; margin:0}
+      body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans JP,sans-serif;background:#f6f7f9;margin:0}
       .wrap{max-width:900px;margin:40px auto;padding:24px}
       .card{background:#fff;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.08);padding:24px}
       h1{font-size:1.4rem;margin:0 0 16px}
       .drop{border:2px dashed #dadde3;border-radius:12px;padding:32px;text-align:center}
-      .drop:hover{background:#fafbfc}
       .muted{color:#6b7280;font-size:.9rem}
-      ul{list-style:none;padding:0}
-      li{padding:8px 0;border-bottom:1px solid #f0f2f5}
-      .name{word-break:break-all}
-      .footer{margin-top:16px;color:#6b7280;font-size:.85rem}
+      ul{list-style:none;padding:0} li{padding:8px 0;border-bottom:1px solid #f0f2f5}
+      .name{word-break:break-all}.footer{margin-top:16px;color:#6b7280;font-size:.85rem}
       button{padding:10px 16px;border-radius:10px;border:1px solid #d1d5db;background:#fff;cursor:pointer}
       button:hover{background:#f9fafb}
     </style>
+
+    <!-- fflate のCDN（本命） -->
     <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.1/umd/fflate.min.js"></script>
+    <!-- 読み込み失敗時のフォールバック -->
+    <script>
+      (function(){
+        if (!window.fflate) {
+          var s = document.createElement('script');
+          s.src = 'https://unpkg.com/fflate@0.8.1/umd/fflate.min.js';
+          document.head.appendChild(s);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div class="wrap">
@@ -35,17 +44,33 @@
         <ul id="list"></ul>
       </div>
     </div>
+
+    <!-- アプリ本体。fflate の後で実行されるよう最後に置く -->
     <script>
       const $ = (s)=>document.querySelector(s);
       const list = $('#list');
       const status = $('#status');
       const btn = $('#btn');
+
+      function ensureFflate(){
+        if(!window.fflate){
+          throw new Error('fflateが読み込めていません。ネットワーク/拡張機能/CSPを確認してください。');
+        }
+      }
+
       btn.addEventListener('click', async () => {
+        try{
+          ensureFflate();
+        }catch(e){
+          status.textContent = '解凍に失敗: ' + e.message;
+          return;
+        }
         const file = $('#file').files[0];
         if(!file){ alert('Zipファイルを選択してください'); return; }
         list.innerHTML = ''; status.textContent = '解凍中…';
         try{
           const buf = new Uint8Array(await file.arrayBuffer());
+          // ここで fflate が使えることを想定
           fflate.unzip(buf, (err, data) => {
             if(err){ status.textContent = '解凍に失敗: ' + err; return; }
             const entries = Object.entries(data).sort((a,b)=>a[0].localeCompare(b[0]));
@@ -53,7 +78,6 @@
             for(const [name, bytes] of entries){
               const li = document.createElement('li');
               li.innerHTML = `<div class="name">${name}</div>`;
-              // ディレクトリはスキップ
               if(bytes.length === 0 && name.endsWith('/')){ list.appendChild(li); continue; }
               const blob = new Blob([bytes.buffer], { type: 'application/octet-stream' });
               const url = URL.createObjectURL(blob);
@@ -63,7 +87,9 @@
               li.appendChild(a); list.appendChild(li);
             }
           });
-        }catch(e){ status.textContent = '解凍に失敗: ' + (e?.message||e); }
+        }catch(e){
+          status.textContent = '解凍に失敗: ' + (e?.message||e);
+        }
       });
     </script>
   </body>
